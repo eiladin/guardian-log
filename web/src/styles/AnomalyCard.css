@@ -1,0 +1,173 @@
+.anomaly-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.anomaly-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.anomaly-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.anomaly-domain {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.domain-name {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #f1f5f9;
+  word-break: break-all;
+}
+
+.classification-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  width: fit-content;
+}
+
+.classification-badge[data-classification="suspicious"] {
+  background-color: #ea580c;
+  color: white;
+}
+
+.classification-badge[data-classification="malicious"] {
+  background-color: #dc2626;
+  color: white;
+}
+
+.risk-score {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: white;
+  min-width: 60px;
+  text-align: center;
+}
+
+.anomaly-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: #0f172a;
+  border-radius: 6px;
+}
+
+.detail-row {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.detail-label {
+  font-weight: 600;
+  color: #94a3b8;
+  min-width: 100px;
+}
+
+.detail-value {
+  color: #e2e8f0;
+}
+
+.status-badge {
+  padding: 0.125rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+}
+
+.anomaly-explanation {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: #0f172a;
+  border-radius: 6px;
+  border-left: 4px solid #3b82f6;
+}
+
+.anomaly-explanation strong {
+  color: #60a5fa;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.anomaly-explanation p {
+  color: #cbd5e1;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.anomaly-action {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: #172554;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: #bfdbfe;
+}
+
+.anomaly-action strong {
+  color: #93c5fd;
+}
+
+.anomaly-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.btn {
+  flex: 1;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-approve {
+  background: #16a34a;
+  color: white;
+}
+
+.btn-approve:hover:not(:disabled) {
+  background: #15803d;
+  transform: translateY(-1px);
+}
+
+.btn-block {
+  background: #dc2626;
+  color: white;
+}
+
+.btn-block:hover:not(:disabled) {
+  background: #b91c1c;
+  transform: translateY(-1px);
+}

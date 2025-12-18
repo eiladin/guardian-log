@@ -1,0 +1,60 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+LICENSE
+docs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts (will be built in container)
+bin/
+web/dist/
+web/node_modules/
+webfs/web/
+
+# Data and logs
+data/
+*.db
+*.log
+
+# Environment files (use docker-compose env instead)
+.env
+.env.local
+.env.*.local
+
+# Test files
+*_test.go
+test/
+coverage/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Docker
+.dockerignore
+Dockerfile
+docker-compose.yml
+
+# Build scripts (not needed in container)
+build.sh
+Makefile
+
+# Temporary files
+tmp/
+temp/
+*.tmp
