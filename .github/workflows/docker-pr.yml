@@ -70,6 +70,8 @@ jobs:
           # Test that the image runs (without --rm so we can get logs on failure)
           docker run --name test-container -d \
             -e AGH_URL=http://example.com \
+            -e AGH_USER=testuser \
+            -e AGH_PASS=testpass \
             -e GEMINI_API_KEY=test \
             $IMAGE_TAG
 
