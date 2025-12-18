@@ -6,8 +6,6 @@
 *.dylib
 guardian-log
 inspect-db
-cmd/guardian-log/guardian-log
-cmd/inspect-db/inspect-db
 
 # Test binary, built with `go test -c`
 *.test
