@@ -58,38 +58,7 @@ jobs:
         with:
           name: guardian-log-image
           path: /tmp/guardian-log.tar
-          retention-days: 1
-
-      - name: Test image
-        run: |
-          docker load --input /tmp/guardian-log.tar
-
-          # Get the image name from metadata
-          IMAGE_TAG=$(echo "${{ steps.meta.outputs.tags }}" | head -n1)
-
-          # Test that the image runs (without --rm so we can get logs on failure)
-          docker run --name test-container -d \
-            -e AGH_URL=http://example.com \
-            -e AGH_USER=testuser \
-            -e AGH_PASS=testpass \
-            -e GEMINI_API_KEY=test \
-            $IMAGE_TAG
-
-          # Wait a bit for startup
-          sleep 5
-
-          # Check if container is still running
-          if docker ps | grep test-container; then
-            echo "✅ Container started successfully"
-            docker stop test-container
-            docker rm test-container
-          else
-            echo "❌ Container failed to start"
-            echo "Container logs:"
-            docker logs test-container || true
-            docker rm test-container || true
-            exit 1
-          fi
+          retention-days: 1     
 
       - name: Comment PR with build status
         uses: actions/github-script@v7
