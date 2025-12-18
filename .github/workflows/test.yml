@@ -115,8 +115,7 @@ jobs:
           cp -r web/dist webfs/web/
 
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v4
+        uses: golangci/golangci-lint-action@v9
         with:
-          version: v1.62
           args: --timeout=5m
           install-mode: binary
