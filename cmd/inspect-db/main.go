@@ -54,7 +54,7 @@ func main() {
 	fmt.Printf("Total Domains: %d\n\n", totalDomains)
 
 	// Display each baseline
-	fmt.Println("=== Client Baselines ===\n")
+	fmt.Printf("=== Client Baselines ===\n\n")
 	for i, baseline := range baselines {
 		fmt.Printf("[%d] Client: %s (%s)\n", i+1, baseline.ClientName, baseline.ClientID)
 		fmt.Printf("    Domains: %d\n", len(baseline.Domains))
