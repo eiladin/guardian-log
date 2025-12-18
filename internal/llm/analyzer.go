@@ -18,17 +18,17 @@ type Analyzer struct {
 	store        *storage.BoltStore
 
 	// Async processing
-	queryQueue   chan storage.DNSQuery
-	wg           sync.WaitGroup
-	ctx          context.Context
-	cancel       context.CancelFunc
+	queryQueue chan storage.DNSQuery
+	wg         sync.WaitGroup
+	ctx        context.Context
+	cancel     context.CancelFunc
 
 	// Batching
-	batchSize     int
-	batchTimeout  time.Duration
-	currentBatch  []storage.DNSQuery
-	batchMu       sync.Mutex
-	batchTimer    *time.Timer
+	batchSize    int
+	batchTimeout time.Duration
+	currentBatch []storage.DNSQuery
+	batchMu      sync.Mutex
+	batchTimer   *time.Timer
 
 	// Rate limiting
 	rateLimiter  chan struct{} // Semaphore for rate limiting
@@ -58,17 +58,17 @@ func NewAnalyzer(provider Provider, whoisService *enrichment.WHOISService, store
 	rateLimiterSize := 1 // Only allow 1 concurrent request
 
 	analyzer := &Analyzer{
-		provider:      provider,
-		whoisService:  whoisService,
-		store:         store,
-		queryQueue:    make(chan storage.DNSQuery, 100),      // Buffer up to 100 queries
-		batchSize:     batchSize,
-		batchTimeout:  batchTimeout,
-		currentBatch:  make([]storage.DNSQuery, 0, batchSize),
-		rateLimiter:   make(chan struct{}, rateLimiterSize), // Semaphore for rate limiting
-		requestDelay:  requestDelay,
-		ctx:           ctx,
-		cancel:        cancel,
+		provider:     provider,
+		whoisService: whoisService,
+		store:        store,
+		queryQueue:   make(chan storage.DNSQuery, 100), // Buffer up to 100 queries
+		batchSize:    batchSize,
+		batchTimeout: batchTimeout,
+		currentBatch: make([]storage.DNSQuery, 0, batchSize),
+		rateLimiter:  make(chan struct{}, rateLimiterSize), // Semaphore for rate limiting
+		requestDelay: requestDelay,
+		ctx:          ctx,
+		cancel:       cancel,
 	}
 
 	// Start background worker
@@ -168,109 +168,6 @@ func (a *Analyzer) worker() {
 			a.batchTimer.Reset(a.batchTimeout)
 		}
 	}
-}
-
-// analyzeQuery performs the full analysis workflow for a single query
-func (a *Analyzer) analyzeQuery(query storage.DNSQuery) error {
-	a.mu.Lock()
-	a.totalAnalyses++
-	a.mu.Unlock()
-
-	log.Printf("🔍 [Analyzer] Starting analysis for %s (client: %s)", query.Domain, query.ClientID)
-
-	// Step 1: WHOIS enrichment
-	log.Printf("🌐 [Analyzer] Looking up WHOIS for %s", query.Domain)
-	whoisData, err := a.whoisService.Lookup(query.Domain)
-	if err != nil {
-		log.Printf("⚠️  [Analyzer] WHOIS lookup failed for %s: %v", query.Domain, err)
-		// Continue with partial data
-	} else {
-		log.Printf("✅ [Analyzer] WHOIS lookup complete for %s (registrar: %s, country: %s)",
-			query.Domain, whoisData.Registrar, whoisData.Country)
-	}
-
-	// Step 2: LLM analysis with rate limiting
-	// Acquire rate limiter token
-	select {
-	case a.rateLimiter <- struct{}{}:
-		// Got token, proceed
-		defer func() {
-			// Release token after delay
-			time.Sleep(a.requestDelay)
-			<-a.rateLimiter
-		}()
-	case <-a.ctx.Done():
-		return a.ctx.Err()
-	}
-
-	log.Printf("🤖 [Analyzer] Sending %s to %s for analysis", query.Domain, a.provider.Name())
-	ctx, cancel := context.WithTimeout(a.ctx, 60*time.Second)
-	defer cancel()
-
-	analysis, err := a.provider.Analyze(ctx, query, whoisData)
-	if err != nil {
-		// Check if it's a rate limit error
-		if err == ErrRateLimited {
-			log.Printf("🚫 [Analyzer] Rate limited for %s, will retry later", query.Domain)
-			a.mu.Lock()
-			a.rateLimitedCount++
-			a.failedAnalyses++
-			a.mu.Unlock()
-
-			// Requeue for retry after a delay
-			go func() {
-				time.Sleep(30 * time.Second)
-				a.AnalyzeAsync(query)
-			}()
-			return err
-		}
-
-		log.Printf("❌ [Analyzer] LLM analysis failed for %s: %v", query.Domain, err)
-		a.mu.Lock()
-		a.failedAnalyses++
-		a.mu.Unlock()
-		return err
-	}
-
-	log.Printf("✅ [Analyzer] LLM analysis complete for %s: %s (risk: %d/10)",
-		query.Domain, analysis.Classification, analysis.RiskScore)
-
-	// Step 3: Store analysis results
-	if err := a.store.SaveAnalysis(analysis); err != nil {
-		log.Printf("[Analyzer] Failed to save analysis for %s: %v", query.Domain, err)
-		a.mu.Lock()
-		a.failedAnalyses++
-		a.mu.Unlock()
-		return err
-	}
-
-	// Step 4: If suspicious or malicious, also store as anomaly
-	if analysis.Classification == "Suspicious" || analysis.Classification == "Malicious" {
-		anomaly := storage.Anomaly{
-			Domain:          query.Domain,
-			ClientID:        query.ClientID,
-			ClientName:      query.ClientName,
-			QueryType:       query.QueryType,
-			Classification:  analysis.Classification,
-			RiskScore:       analysis.RiskScore,
-			Explanation:     analysis.Explanation,
-			SuggestedAction: analysis.SuggestedAction,
-			DetectedAt:      analysis.AnalyzedAt,
-		}
-
-		if err := a.store.SaveAnomaly(&anomaly); err != nil {
-			log.Printf("[Analyzer] Failed to save anomaly for %s: %v", query.Domain, err)
-		} else {
-			log.Printf("[Analyzer] 🚨 ANOMALY DETECTED: %s -> %s (risk: %d/10, action: %s)",
-				query.Domain, analysis.Classification, analysis.RiskScore, analysis.SuggestedAction)
-		}
-	}
-
-	a.mu.Lock()
-	a.successfulAnalyses++
-	a.mu.Unlock()
-
-	return nil
 }
 
 // GetStats returns statistics about the analyzer

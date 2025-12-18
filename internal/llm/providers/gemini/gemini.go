@@ -38,7 +38,7 @@ type Provider struct {
 // NewProvider creates a new Gemini provider
 func NewProvider(apiKey, model string, timeout time.Duration) (*Provider, error) {
 	if apiKey == "" {
-		return nil, fmt.Errorf("Gemini API key is required")
+		return nil, fmt.Errorf("gemini API key is required")
 	}
 
 	if model == "" {
@@ -161,7 +161,7 @@ func (p *Provider) Analyze(ctx context.Context, query storage.DNSQuery, whois *s
 		}
 
 		// Non-rate-limit error - fail immediately
-		return nil, fmt.Errorf("Gemini API request failed: %w", err)
+		return nil, fmt.Errorf("gemini API request failed: %w", err)
 	}
 
 	// Extract response text

@@ -23,11 +23,11 @@ const (
 
 // WHOISService handles domain enrichment via WHOIS lookups
 type WHOISService struct {
-	store        *storage.BoltStore
-	lastLookup   time.Time
-	lookupCount  int
-	cacheHits    int
-	cacheMisses  int
+	store       *storage.BoltStore
+	lastLookup  time.Time
+	lookupCount int
+	cacheHits   int
+	cacheMisses int
 }
 
 // NewWHOISService creates a new WHOIS enrichment service
@@ -89,9 +89,9 @@ func (s *WHOISService) Lookup(domain string) (*storage.WHOISData, error) {
 
 	// Build WHOISData from parsed result
 	data := &storage.WHOISData{
-		Domain:      domain,
-		Registrar:   parsed.Registrar.Name,
-		LookedUpAt:  time.Now(),
+		Domain:     domain,
+		Registrar:  parsed.Registrar.Name,
+		LookedUpAt: time.Now(),
 	}
 
 	// Extract country from registrant or admin contact
@@ -166,9 +166,9 @@ func (s *WHOISService) GetStats() map[string]interface{} {
 	}
 
 	return map[string]interface{}{
-		"total_lookups":   s.lookupCount,
-		"cache_hits":      s.cacheHits,
-		"cache_misses":    s.cacheMisses,
-		"cache_hit_rate":  fmt.Sprintf("%.1f%%", cacheHitRate),
+		"total_lookups":  s.lookupCount,
+		"cache_hits":     s.cacheHits,
+		"cache_misses":   s.cacheMisses,
+		"cache_hit_rate": fmt.Sprintf("%.1f%%", cacheHitRate),
 	}
 }

@@ -441,7 +441,7 @@ func (s *BoltStore) GetStats() (map[string]interface{}, error) {
 		maliciousCount := 0
 		suspiciousCount := 0
 
-		anomaliesBkt.ForEach(func(k, v []byte) error {
+		if err := anomaliesBkt.ForEach(func(k, v []byte) error {
 			var anomaly Anomaly
 			if err := json.Unmarshal(v, &anomaly); err != nil {
 				return nil // Skip malformed entries
@@ -472,7 +472,9 @@ func (s *BoltStore) GetStats() (map[string]interface{}, error) {
 			}
 
 			return nil
-		})
+		}); err != nil {
+			return fmt.Errorf("failed to iterate anomalies: %w", err)
+		}
 
 		stats["total_anomalies"] = totalAnomalies
 		stats["pending_anomalies"] = pendingCount

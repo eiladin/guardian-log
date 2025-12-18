@@ -96,7 +96,7 @@ func (p *Provider) AnalyzeBatch(ctx context.Context, queries []storage.DNSQuery,
 		}
 
 		// Non-rate-limit error - fail immediately
-		return nil, fmt.Errorf("Gemini batch API request failed: %w", err)
+		return nil, fmt.Errorf("gemini batch API request failed: %w", err)
 	}
 
 	// Extract response text

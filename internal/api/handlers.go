@@ -176,20 +176,44 @@ func (s *Server) handleStats(w http.ResponseWriter, r *http.Request) {
 
 	// Get LLM analyzer stats if available
 	var llmStats StatsResponse
-	llmStats.TotalQueries = int64(stats["total_queries"].(int))
-	llmStats.UniqueClients = stats["unique_clients"].(int)
-	llmStats.TotalAnomalies = int64(stats["total_anomalies"].(int))
-	llmStats.PendingAnomalies = stats["pending_anomalies"].(int)
-	llmStats.ApprovedAnomalies = stats["approved_anomalies"].(int)
-	llmStats.BlockedAnomalies = stats["blocked_anomalies"].(int)
-	llmStats.MaliciousCount = stats["malicious_count"].(int)
-	llmStats.SuspiciousCount = stats["suspicious_count"].(int)
+
+	// Safely convert map values with type assertions
+	if val, ok := stats["total_queries"].(int); ok {
+		llmStats.TotalQueries = int64(val)
+	}
+	if val, ok := stats["unique_clients"].(int); ok {
+		llmStats.UniqueClients = val
+	}
+	if val, ok := stats["total_anomalies"].(int); ok {
+		llmStats.TotalAnomalies = int64(val)
+	}
+	if val, ok := stats["pending_anomalies"].(int); ok {
+		llmStats.PendingAnomalies = val
+	}
+	if val, ok := stats["approved_anomalies"].(int); ok {
+		llmStats.ApprovedAnomalies = val
+	}
+	if val, ok := stats["blocked_anomalies"].(int); ok {
+		llmStats.BlockedAnomalies = val
+	}
+	if val, ok := stats["malicious_count"].(int); ok {
+		llmStats.MaliciousCount = val
+	}
+	if val, ok := stats["suspicious_count"].(int); ok {
+		llmStats.SuspiciousCount = val
+	}
 
 	if s.llmAnalyzer != nil {
 		analyzerStats := s.llmAnalyzer.GetStats()
-		llmStats.LLMAnalysesTotal = int64(analyzerStats["total_analyses"].(int))
-		llmStats.LLMAnalysesSuccess = int64(analyzerStats["successful_analyses"].(int))
-		llmStats.LLMAnalysesFailed = int64(analyzerStats["failed_analyses"].(int))
+		if val, ok := analyzerStats["total_analyses"].(int); ok {
+			llmStats.LLMAnalysesTotal = int64(val)
+		}
+		if val, ok := analyzerStats["successful_analyses"].(int); ok {
+			llmStats.LLMAnalysesSuccess = int64(val)
+		}
+		if val, ok := analyzerStats["failed_analyses"].(int); ok {
+			llmStats.LLMAnalysesFailed = int64(val)
+		}
 	}
 
 	respondJSON(w, http.StatusOK, llmStats)
