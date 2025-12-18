@@ -4,8 +4,8 @@
 *.dll
 *.so
 *.dylib
-guardian-log
-inspect-db
+./guardian-log
+./inspect-db
 
 # Test binary, built with `go test -c`
 *.test
