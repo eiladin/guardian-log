@@ -67,8 +67,8 @@ jobs:
           # Get the image name from metadata
           IMAGE_TAG=$(echo "${{ steps.meta.outputs.tags }}" | head -n1)
 
-          # Test that the image runs
-          docker run --rm --name test-container -d \
+          # Test that the image runs (without --rm so we can get logs on failure)
+          docker run --name test-container -d \
             -e AGH_URL=http://example.com \
             -e GEMINI_API_KEY=test \
             $IMAGE_TAG
@@ -80,9 +80,12 @@ jobs:
           if docker ps | grep test-container; then
             echo "✅ Container started successfully"
             docker stop test-container
+            docker rm test-container
           else
             echo "❌ Container failed to start"
+            echo "Container logs:"
             docker logs test-container || true
+            docker rm test-container || true
             exit 1
           fi
 
