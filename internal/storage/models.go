@@ -38,8 +38,8 @@ type Anomaly struct {
 	ClientID        string    `json:"client_id"`
 	ClientName      string    `json:"client_name"`
 	QueryType       string    `json:"query_type"`
-	Classification  string    `json:"classification"`   // Suspicious or Malicious
-	RiskScore       int       `json:"risk_score"`       // 1-10
+	Classification  string    `json:"classification"` // Suspicious or Malicious
+	RiskScore       int       `json:"risk_score"`     // 1-10
 	Explanation     string    `json:"explanation"`
 	SuggestedAction string    `json:"suggested_action"` // Investigate or Block
 	DetectedAt      time.Time `json:"detected_at"`

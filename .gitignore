@@ -4,10 +4,8 @@
 *.dll
 *.so
 *.dylib
-guardian-log
-inspect-db
-cmd/guardian-log/guardian-log
-cmd/inspect-db/inspect-db
+./guardian-log
+./inspect-db
 
 # Test binary, built with `go test -c`
 *.test
@@ -60,3 +58,4 @@ docker-build/
 # Development / Hot reload
 tmp/
 build-errors.log
+logs/

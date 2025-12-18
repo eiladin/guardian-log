@@ -2,7 +2,6 @@ package llm
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -248,21 +247,4 @@ func (a *Analyzer) processBatchWithAPI(ctx context.Context, batchNum int, querie
 	a.mu.Unlock()
 
 	log.Printf("✅ [Batch #%d] Complete: %d succeeded, %d failed (single API call)", batchNum, successCount, failCount)
-}
-
-// parseBatchResponse parses a JSON array response from the LLM
-func parseBatchResponse(responseText string) ([]BatchAnalysisResponse, error) {
-	var responses []BatchAnalysisResponse
-	if err := json.Unmarshal([]byte(responseText), &responses); err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrInvalidJSON, err)
-	}
-
-	// Validate each response
-	for i, resp := range responses {
-		if err := resp.Validate(); err != nil {
-			return nil, fmt.Errorf("batch response[%d] validation failed: %w", i, err)
-		}
-	}
-
-	return responses, nil
 }
