@@ -56,3 +56,7 @@ Thumbs.db
 # Docker build artifacts
 .docker/
 docker-build/
+
+# Development / Hot reload
+tmp/
+build-errors.log
