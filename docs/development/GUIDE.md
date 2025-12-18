@@ -341,6 +341,14 @@ code --install-extension ms-vscode.js-debug
 }
 ```
 
+**Quick Start with VS Code Debugger:**
+See [.vscode/DEBUG_GUIDE.md](.vscode/DEBUG_GUIDE.md) for detailed instructions.
+
+**TL;DR:**
+1. Start servers: `make dev-backend` and `make dev-frontend`
+2. Press F5 in VS Code
+3. Select "Debug Full Stack"
+
 **Complete Launch Configuration:**
 `.vscode/launch.json`:
 ```json

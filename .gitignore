@@ -60,3 +60,4 @@ docker-build/
 # Development / Hot reload
 tmp/
 build-errors.log
+logs/
