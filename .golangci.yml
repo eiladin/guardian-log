@@ -1,37 +1,39 @@
-# golangci-lint configuration
-# https://golangci-lint.run/usage/configuration/
-
+version: "2"
 run:
-  timeout: 5m
   tests: true
-
 linters:
   enable:
-    - errcheck      # Check for unchecked errors
-    - gosimple      # Simplify code
-    - govet         # Vet examines Go source code
-    - ineffassign   # Detect ineffectual assignments
-    - staticcheck   # Staticcheck is a go vet on steroids
-    - unused        # Check for unused constants, variables, functions and types
-    - gofmt         # Check code formatting
-    - misspell      # Check for misspelled words
-    - unconvert     # Remove unnecessary type conversions
-
-linters-settings:
-  errcheck:
-    check-type-assertions: true
-
-  misspell:
-    locale: US
-
-issues:
-  exclude-rules:
-    # Exclude some linters from running on tests files
-    - path: _test\.go
-      linters:
-        - errcheck
-
-    # Allow embedding in webfs package
-    - path: webfs/webfs\.go
-      linters:
-        - all
+    - misspell
+    - unconvert
+  settings:
+    errcheck:
+      check-type-assertions: true
+    misspell:
+      locale: US
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - errcheck
+        path: _test\.go
+      - linters:
+          - all
+        path: webfs/webfs\.go
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
