@@ -96,39 +96,23 @@ func BuildPrompt(query storage.DNSQuery, whois *storage.WHOISData) string {
 func BuildBatchPrompt(queries []storage.DNSQuery, whoisData map[string]*storage.WHOISData) string {
 	var sb strings.Builder
 
-	sb.WriteString("You are a cybersecurity expert analyzing DNS queries for potential threats.\n\n")
-	sb.WriteString(fmt.Sprintf("Analyze the following %d DNS queries:\n\n", len(queries)))
+	sb.WriteString("Analyze these DNS queries for security threats. Respond with JSON array only.\n\n")
 
 	for i, query := range queries {
-		sb.WriteString(fmt.Sprintf("### Query %d\n", i+1))
-		sb.WriteString(fmt.Sprintf("- **Domain**: %s\n", query.Domain))
-		sb.WriteString(fmt.Sprintf("- **Client**: %s (%s)\n", query.ClientName, query.ClientID))
-		sb.WriteString(fmt.Sprintf("- **Query Type**: %s\n", query.QueryType))
+		sb.WriteString(fmt.Sprintf("%d. %s", i+1, query.Domain))
 
 		if whois, ok := whoisData[query.Domain]; ok && whois != nil {
-			if whois.Registrar != "" {
-				sb.WriteString(fmt.Sprintf("- **Registrar**: %s\n", whois.Registrar))
-			}
 			if whois.Country != "" {
-				sb.WriteString(fmt.Sprintf("- **Country**: %s\n", whois.Country))
+				sb.WriteString(fmt.Sprintf(" [%s]", whois.Country))
+			}
+			if whois.Registrar != "" {
+				sb.WriteString(fmt.Sprintf(" (%s)", whois.Registrar))
 			}
 		}
 		sb.WriteString("\n")
 	}
 
-	sb.WriteString("## Response Format\n")
-	sb.WriteString("Respond with a JSON array containing an analysis for each query:\n\n")
-	sb.WriteString("```json\n")
-	sb.WriteString("[\n")
-	sb.WriteString("  {\n")
-	sb.WriteString("    \"domain\": \"example.com\",\n")
-	sb.WriteString("    \"classification\": \"Safe|Suspicious|Malicious\",\n")
-	sb.WriteString("    \"explanation\": \"Brief explanation\",\n")
-	sb.WriteString("    \"risk_score\": 1-10,\n")
-	sb.WriteString("    \"suggested_action\": \"Allow|Investigate|Block\"\n")
-	sb.WriteString("  }\n")
-	sb.WriteString("]\n")
-	sb.WriteString("```\n")
+	sb.WriteString("\nFormat: [{\"domain\":\"x.com\",\"classification\":\"Safe|Suspicious|Malicious\",\"explanation\":\"...\",\"risk_score\":1-10,\"suggested_action\":\"Allow|Investigate|Block\"}]\n")
 
 	return sb.String()
 }

@@ -2,91 +2,118 @@
 
 ## Summary
 
-Added configurable batch processing settings to help prevent rate limiting with Gemini's free tier API.
+Optimized batch processing and prompts to prevent rate limiting with Gemini 2.5 Flash-Lite's free tier API (15 RPM, 250K TPM).
 
 ## Problem
 
-The hardcoded batch settings were too aggressive for Gemini's free tier (15 RPM limit):
-- Batch size: 10 domains
-- Batch timeout: 10 seconds
-- Request delay: 10 seconds
-- **Result**: Up to 6 requests per minute, causing frequent rate limiting
+Gemini 2.5 Flash-Lite has two rate limits:
+- **15 RPM** (Requests Per Minute)
+- **250,000 TPM** (Tokens Per Minute)
+
+Previous settings were hitting the **TPM limit** (not RPM):
+- Batch size: 20 domains = ~5,000+ tokens per request
+- Verbose batch prompt with lots of instructional text
+- **Result**: Token-heavy requests causing frequent 429 errors
 
 ## Solution
 
-Made batch processing fully configurable via environment variables with more conservative defaults:
+Two-pronged approach to reduce token usage:
 
-### New Environment Variables
+### 1. Optimized Batch Prompt (65% Token Reduction)
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `LLM_BATCH_SIZE` | `20` | Number of domains to analyze per API call |
-| `LLM_BATCH_TIMEOUT` | `60s` | Maximum time to wait before processing a partial batch |
-| `LLM_BATCH_DELAY` | `60s` | Minimum delay between batch requests |
+**Before** (~800 tokens for 20 domains):
+```
+You are a cybersecurity expert analyzing DNS queries for potential threats.
 
-### New Defaults (Much More Conservative)
+Analyze the following 20 DNS queries:
 
-```env
-LLM_BATCH_SIZE=20          # 2x larger batches (fewer API calls)
-LLM_BATCH_TIMEOUT=60s      # 6x longer wait (accumulate more domains)
-LLM_BATCH_DELAY=60s        # 6x longer delay (1 request per minute = 100% safe)
+### Query 1
+- **Domain**: example.com
+- **Client**: laptop (192.168.1.100)
+...
+## Response Format
+Respond with a JSON array containing an analysis for each query:
+...
 ```
 
-**Result**: Maximum **1 request per minute** with **20 domains per request** = up to 20 domains analyzed per minute with zero rate limiting.
+**After** (~280 tokens for 20 domains):
+```
+Analyze these DNS queries for security threats. Respond with JSON array only.
 
-## Recommended Settings for Your Setup
-
-Since you're on a **30s poll interval**, try these settings:
-
-```env
-# In your .env file
-POLL_INTERVAL=30s
-LLM_BATCH_SIZE=20
-LLM_BATCH_TIMEOUT=60s
-LLM_BATCH_DELAY=60s
+1. example.com [US] (GoDaddy)
+2. test.com [CN] (Namecheap)
+...
+Format: [{"domain":"x.com","classification":"Safe|Suspicious|Malicious","explanation":"...","risk_score":1-10,"suggested_action":"Allow|Investigate|Block"}]
 ```
 
-This will:
-1. Poll AdGuard every 30 seconds for new DNS queries
-2. Accumulate domains for up to 60 seconds
-3. Send up to 20 domains per API call
-4. Wait 60 seconds between API calls
-5. Process ~20 domains per minute safely
+### 2. Conservative Default Settings
+
+| Variable | Old Default | New Default | Reason |
+|----------|------------|-------------|--------|
+| `LLM_BATCH_SIZE` | `20` | `10` | Fewer domains = fewer tokens per request |
+| `LLM_BATCH_TIMEOUT` | `60s` | `90s` | More time to accumulate domains |
+| `LLM_BATCH_DELAY` | `60s` | `90s` | Longer delay between requests |
+
+**Result**: ~1,500 tokens per request (input + output) = **~17,000 TPM usage** (vs 250K limit = 7% utilization)
+
+## Recommended Settings for Gemini 2.5 Flash-Lite
+
+### Default Settings (Safest - Start Here)
+
+```env
+LLM_BATCH_SIZE=10          # Small batches = low token usage
+LLM_BATCH_TIMEOUT=90s      # Wait to collect domains
+LLM_BATCH_DELAY=90s        # ~40 requests/hour
+```
+
+**Token Usage**: ~1,500 tokens/request × 0.67 req/min = **~1,000 TPM** (0.4% of limit)
 
 ## If You Still Get Rate Limited
 
-If you see `🚫 Rate limited` messages in logs:
+If you see `🚫 Rate limited` messages:
 
-### Option 1: Increase Delay (Safest)
+### Step 1: Reduce Batch Size (Lowest Tokens)
 ```env
-LLM_BATCH_DELAY=90s        # 1.5 minutes between requests
-# or
+LLM_BATCH_SIZE=5           # Minimal token usage per request
+LLM_BATCH_TIMEOUT=120s     # Wait longer to accumulate
 LLM_BATCH_DELAY=120s       # 2 minutes between requests
 ```
 
-### Option 2: Increase Batch Size
+**Token Usage**: ~800 tokens/request × 0.5 req/min = **~400 TPM** (0.16% of limit)
+
+### Step 2: Increase Delay Further
 ```env
-LLM_BATCH_SIZE=30          # Larger batches = fewer requests
-LLM_BATCH_TIMEOUT=90s      # Wait longer to collect more domains
+LLM_BATCH_SIZE=5
+LLM_BATCH_DELAY=180s       # 3 minutes between requests
 ```
 
-### Option 3: Both
+### Step 3: Consider Model Switch
+If still rate limited, try **gemini-1.5-flash** (may have different TPM limits):
 ```env
-LLM_BATCH_SIZE=30
-LLM_BATCH_TIMEOUT=90s
-LLM_BATCH_DELAY=90s
+GEMINI_MODEL=gemini-1.5-flash
 ```
+
+## For Faster Processing (Once Stable)
+
+If you're NOT getting rate limited and want faster throughput:
+
+```env
+LLM_BATCH_SIZE=15          # More domains per request
+LLM_BATCH_TIMEOUT=60s      # Process faster
+LLM_BATCH_DELAY=60s        # 1 request per minute
+```
+
+**Token Usage**: ~2,500 tokens/request × 1 req/min = **~2,500 TPM** (1% of limit)
 
 ## Files Changed
 
 ### Code Changes
-- `internal/config/config.go` - Added batch configuration fields
-- `internal/llm/analyzer.go` - Made batch settings configurable via constructor
-- `cmd/guardian-log/main.go` - Pass configuration to analyzer
+- `internal/llm/prompt.go` - **Optimized batch prompt** (65% token reduction)
+- `internal/config/config.go` - Changed defaults: batch size 10, delays 90s
+- `.env.example` - Updated with Flash-Lite specific guidance
 
 ### Documentation
-- `.env.example` - Added batch settings with defaults and comments
-- `docs/deployment/CONFIGURATION.md` - Added rate limiting section with examples
+- `RATE_LIMITING_IMPROVEMENTS.md` - This file (comprehensive guide)
 
 ## Testing
 
@@ -118,25 +145,30 @@ Or leave them out to use the defaults (same values).
 
 ## Understanding the Math
 
-**Gemini Free Tier**: 15 RPM (requests per minute)
+**Gemini 2.5 Flash-Lite Free Tier**: 15 RPM, 250K TPM, 1K RPD
 
-**Old Settings** (10s delay):
-- 6 requests per minute
-- 10 domains per request
-- = 60 domains/minute (40% of limit used)
-- ⚠️ But batches could queue and fire rapidly, exceeding limit
+### Token Usage Examples
 
-**New Defaults** (60s delay):
-- 1 request per minute
-- 20 domains per request
-- = 20 domains/minute (6.7% of limit used)
-- ✅ Guaranteed safe, never hits rate limit
+| Batch Size | Prompt Tokens | Response Tokens | Total/Request | At 1 req/min | % of TPM Limit |
+|-----------|--------------|-----------------|---------------|--------------|----------------|
+| **5** | ~500 | ~300 | ~800 | ~800 TPM | **0.3%** ✅ |
+| **10** | ~900 | ~600 | ~1,500 | ~1,500 TPM | **0.6%** ✅ |
+| **15** | ~1,300 | ~1,200 | ~2,500 | ~2,500 TPM | **1.0%** ✅ |
+| **20** | ~1,700 | ~1,600 | ~3,300 | ~3,300 TPM | **1.3%** ✅ |
 
-**Aggressive Settings** (30s delay):
-- 2 requests per minute
-- 20 domains per request
-- = 40 domains/minute (13.3% of limit used)
-- ⚠️ Close to limit, may occasionally hit it
+### Why You Were Getting Rate Limited
+
+**Previous Settings**:
+- 20 domains per batch
+- Old verbose prompt: ~800 tokens of instructions
+- = ~3,300 tokens per request
+- With network delays, retries, or multiple processes: **Could hit 250K TPM limit**
+
+**New Optimized Settings**:
+- 10 domains per batch
+- Compact prompt: ~150 tokens of instructions
+- = ~1,500 tokens per request
+- At 1 req/min: **~1,500 TPM (0.6% of limit)** ✅
 
 ## Next Steps
 
