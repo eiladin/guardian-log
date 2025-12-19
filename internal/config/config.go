@@ -25,6 +25,11 @@ type Config struct {
 	LLMProvider string // gemini, ollama, openai, anthropic
 	LLMTimeout  time.Duration
 
+	// LLM Batching settings
+	LLMBatchSize    int
+	LLMBatchTimeout time.Duration
+	LLMBatchDelay   time.Duration
+
 	// Gemini settings
 	GeminiAPIKey string
 	GeminiModel  string
@@ -91,6 +96,23 @@ func Load() (*Config, error) {
 	}
 	cfg.LLMTimeout = llmTimeout
 
+	// Parse LLM batch settings
+	cfg.LLMBatchSize = getIntEnv("LLM_BATCH_SIZE", 20)
+
+	batchTimeoutStr := getEnv("LLM_BATCH_TIMEOUT", "60s")
+	batchTimeout, err := time.ParseDuration(batchTimeoutStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid LLM_BATCH_TIMEOUT: %w", err)
+	}
+	cfg.LLMBatchTimeout = batchTimeout
+
+	batchDelayStr := getEnv("LLM_BATCH_DELAY", "60s")
+	batchDelay, err := time.ParseDuration(batchDelayStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid LLM_BATCH_DELAY: %w", err)
+	}
+	cfg.LLMBatchDelay = batchDelay
+
 	// Validate required fields
 	if err := cfg.Validate(); err != nil {
 		return nil, err
@@ -156,4 +178,17 @@ func getBoolEnv(key string, defaultValue bool) bool {
 		return defaultValue
 	}
 	return value == "true" || value == "1" || value == "yes"
+}
+
+// getIntEnv retrieves an integer environment variable or returns a default value
+func getIntEnv(key string, defaultValue int) int {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
+	}
+	var result int
+	if _, err := fmt.Sscanf(value, "%d", &result); err != nil {
+		return defaultValue
+	}
+	return result
 }

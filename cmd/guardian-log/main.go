@@ -80,12 +80,13 @@ func main() {
 			log.Fatalf("Unsupported LLM provider: %s", cfg.LLMProvider)
 		}
 
-		// Initialize LLM analyzer
-		llmAnalyzer = llm.NewAnalyzer(provider, whoisService, store)
+		// Initialize LLM analyzer with configured batch settings
+		llmAnalyzer = llm.NewAnalyzer(provider, whoisService, store, cfg.LLMBatchSize, cfg.LLMBatchTimeout, cfg.LLMBatchDelay)
 		poller.SetLLMAnalyzer(llmAnalyzer)
 		defer llmAnalyzer.Stop()
 
-		log.Println("LLM analyzer initialized and attached to poller")
+		log.Printf("LLM analyzer initialized (batch: %d domains, timeout: %s, delay: %s)",
+			cfg.LLMBatchSize, cfg.LLMBatchTimeout, cfg.LLMBatchDelay)
 	} else {
 		log.Println("LLM Analysis: Disabled")
 	}
