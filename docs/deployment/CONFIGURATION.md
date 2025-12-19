@@ -50,6 +50,9 @@ See `.env.example` for complete list with defaults.
 | `LLM_ENABLE` | Enable AI analysis | No | `true` |
 | `LLM_PROVIDER` | Provider (gemini/openai/anthropic/ollama) | No | `gemini` |
 | `LLM_TIMEOUT` | Request timeout | No | `30s` |
+| `LLM_BATCH_SIZE` | Domains per batch request | No | `20` |
+| `LLM_BATCH_TIMEOUT` | Max wait before flushing batch | No | `60s` |
+| `LLM_BATCH_DELAY` | Minimum delay between batches | No | `60s` |
 
 ### Gemini (Recommended)
 
@@ -59,6 +62,50 @@ See `.env.example` for complete list with defaults.
 | `GEMINI_MODEL` | Model name | No | `gemini-1.5-flash` |
 
 Get free API key: https://aistudio.google.com/app/apikey
+
+### Rate Limiting Configuration
+
+**Important**: Adjust batch settings to avoid rate limiting with Gemini free tier.
+
+Gemini Free Tier Limits (gemini-1.5-flash):
+- **15 RPM** (requests per minute)
+- **1 million TPM** (tokens per minute)
+- **1,500 RPD** (requests per day)
+
+#### Recommended Settings for Gemini Free Tier
+
+```env
+# Conservative settings (recommended for free tier)
+LLM_BATCH_SIZE=20          # Process 20 domains per API call
+LLM_BATCH_TIMEOUT=60s      # Wait up to 60s to collect domains
+LLM_BATCH_DELAY=60s        # Wait 60s between batches (1 RPM = safe)
+POLL_INTERVAL=30s          # Check for new DNS queries every 30s
+```
+
+This configuration processes up to **20 domains per minute** with minimal rate limiting.
+
+#### Aggressive Settings (for testing or paid tiers)
+
+```env
+# Faster processing (may hit rate limits on free tier)
+LLM_BATCH_SIZE=10          # Smaller batches
+LLM_BATCH_TIMEOUT=30s      # Flush more frequently
+LLM_BATCH_DELAY=30s        # 2 RPM (risky for free tier)
+```
+
+#### Very Conservative Settings (for heavy traffic)
+
+```env
+# Maximum safety (for high DNS query volume)
+LLM_BATCH_SIZE=30          # Larger batches
+LLM_BATCH_TIMEOUT=120s     # Wait longer to collect more domains
+LLM_BATCH_DELAY=90s        # 40 seconds per batch minimum
+```
+
+**Tip**: Monitor the logs for `🚫 Rate limited` messages. If you see these frequently:
+1. Increase `LLM_BATCH_DELAY` (e.g., from 60s to 90s)
+2. Increase `LLM_BATCH_SIZE` (e.g., from 20 to 30)
+3. Increase `LLM_BATCH_TIMEOUT` to allow more domains to accumulate
 
 ## Advanced Configuration
 

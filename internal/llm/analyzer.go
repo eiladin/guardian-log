@@ -44,18 +44,21 @@ type Analyzer struct {
 }
 
 // NewAnalyzer creates a new LLM analyzer
-func NewAnalyzer(provider Provider, whoisService *enrichment.WHOISService, store *storage.BoltStore) *Analyzer {
+func NewAnalyzer(provider Provider, whoisService *enrichment.WHOISService, store *storage.BoltStore, batchSize int, batchTimeout, requestDelay time.Duration) *Analyzer {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	// Configure batching
-	// Process up to 10 domains per batch, or flush after 10 seconds
-	batchSize := 10
-	batchTimeout := 10 * time.Second
+	// Validate batch settings
+	if batchSize <= 0 {
+		batchSize = 20 // Default
+	}
+	if batchTimeout <= 0 {
+		batchTimeout = 60 * time.Second // Default
+	}
+	if requestDelay <= 0 {
+		requestDelay = 60 * time.Second // Default
+	}
 
-	// Configure rate limiting based on provider
-	// With batching: 1 request per 10 seconds (6 RPM for batches of 10 = 60 domains/min)
-	requestDelay := 10 * time.Second
-	rateLimiterSize := 1 // Only allow 1 concurrent request
+	rateLimiterSize := 1 // Only allow 1 concurrent batch request
 
 	analyzer := &Analyzer{
 		provider:     provider,
