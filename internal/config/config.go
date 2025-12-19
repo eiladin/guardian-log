@@ -97,16 +97,17 @@ func Load() (*Config, error) {
 	cfg.LLMTimeout = llmTimeout
 
 	// Parse LLM batch settings
-	cfg.LLMBatchSize = getIntEnv("LLM_BATCH_SIZE", 20)
+	// Optimized defaults for Gemini 2.5 Flash-Lite (15 RPM, 250K TPM)
+	cfg.LLMBatchSize = getIntEnv("LLM_BATCH_SIZE", 10)
 
-	batchTimeoutStr := getEnv("LLM_BATCH_TIMEOUT", "60s")
+	batchTimeoutStr := getEnv("LLM_BATCH_TIMEOUT", "90s")
 	batchTimeout, err := time.ParseDuration(batchTimeoutStr)
 	if err != nil {
 		return nil, fmt.Errorf("invalid LLM_BATCH_TIMEOUT: %w", err)
 	}
 	cfg.LLMBatchTimeout = batchTimeout
 
-	batchDelayStr := getEnv("LLM_BATCH_DELAY", "60s")
+	batchDelayStr := getEnv("LLM_BATCH_DELAY", "90s")
 	batchDelay, err := time.ParseDuration(batchDelayStr)
 	if err != nil {
 		return nil, fmt.Errorf("invalid LLM_BATCH_DELAY: %w", err)
