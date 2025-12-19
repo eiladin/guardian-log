@@ -197,41 +197,88 @@ func (c *AdGuardClient) TestConnection() error {
 	return nil
 }
 
-// BlockDomain adds a domain to the AdGuard Home blocklist
+// FilteringStatus represents the response from /control/filtering/status
+type FilteringStatus struct {
+	UserRules []string `json:"user_rules"`
+	// Other fields omitted for brevity
+}
+
+// SetRulesRequest represents the request payload for /control/filtering/set_rules
+type SetRulesRequest struct {
+	Rules []string `json:"rules"`
+}
+
+// BlockDomain adds a domain to the AdGuard Home custom filtering rules
 func (c *AdGuardClient) BlockDomain(domain string) error {
-	// AdGuard Home API endpoint for adding filtering rules
-	url := fmt.Sprintf("%s/control/filtering/add_url", c.baseURL)
+	// Step 1: Get existing custom filtering rules
+	statusURL := fmt.Sprintf("%s/control/filtering/status", c.baseURL)
 
-	// Create the request payload to add a custom blocking rule
-	// We'll use AdBlock syntax: ||domain^ blocks the domain and all subdomains
-	payload := map[string]interface{}{
-		"name":    fmt.Sprintf("Guardian-Log Block: %s", domain),
-		"url":     fmt.Sprintf("data:text/plain,||%s^", domain),
-		"enabled": true,
-	}
-
-	payloadBytes, err := json.Marshal(payload)
+	req, err := http.NewRequest("GET", statusURL, nil)
 	if err != nil {
-		return fmt.Errorf("failed to marshal payload: %w", err)
+		return fmt.Errorf("failed to create status request: %w", err)
 	}
-
-	req, err := http.NewRequest("POST", url, strings.NewReader(string(payloadBytes)))
-	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
-	}
-
 	req.SetBasicAuth(c.username, c.password)
-	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to block domain: %w", err)
+		return fmt.Errorf("failed to get filtering status: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("failed to block domain, status %d: %s", resp.StatusCode, string(body))
+		return fmt.Errorf("failed to get filtering status, status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var status FilteringStatus
+	if err := json.NewDecoder(resp.Body).Decode(&status); err != nil {
+		return fmt.Errorf("failed to decode filtering status: %w", err)
+	}
+
+	// Step 2: Create new blocking rule using AdBlock syntax
+	// ||domain^ blocks the domain and all subdomains
+	newRule := fmt.Sprintf("||%s^", domain)
+
+	// Check if rule already exists
+	for _, rule := range status.UserRules {
+		if rule == newRule {
+			// Rule already exists, nothing to do
+			return nil
+		}
+	}
+
+	// Step 3: Append new rule to existing rules
+	updatedRules := append(status.UserRules, newRule)
+
+	// Step 4: Set updated rules back to AdGuard Home
+	setRulesURL := fmt.Sprintf("%s/control/filtering/set_rules", c.baseURL)
+
+	payload := SetRulesRequest{
+		Rules: updatedRules,
+	}
+
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal rules payload: %w", err)
+	}
+
+	req, err = http.NewRequest("POST", setRulesURL, strings.NewReader(string(payloadBytes)))
+	if err != nil {
+		return fmt.Errorf("failed to create set_rules request: %w", err)
+	}
+
+	req.SetBasicAuth(c.username, c.password)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err = c.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to set filtering rules: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("failed to set filtering rules, status %d: %s", resp.StatusCode, string(body))
 	}
 
 	return nil
